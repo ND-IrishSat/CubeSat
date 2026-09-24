@@ -62,6 +62,10 @@ pytest                      # every test is skipped until its module is implemen
 - [`docs/conventions.md`](docs/conventions.md): units, quaternions, frames, file suffixes, status tags
 - [`docs/open_questions.md`](docs/open_questions.md): decisions that block some files (`[BLOCKED: OQ-n]`)
 - [`docs/onboarding.md`](docs/onboarding.md): how to pick up and finish a file
+- Layer guides (how the files in a package fit together):
+  [`estimation/`](cloversat/estimation/README.md),
+  [`control/`](cloversat/control/README.md),
+  [`executive/`](cloversat/executive/README.md)
 
 ## Branching
 
