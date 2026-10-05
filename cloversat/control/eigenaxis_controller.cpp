@@ -1,5 +1,6 @@
 // this code is a draft for the eigenaxis controller
 #include <iostream>
+#include <vector>
 #include eigenaxis_gains.hpp
 
 float eigenaxis_calculation()
@@ -22,6 +23,12 @@ float quaternion_calculator()
     {
         for (int j = 0; i <= std::length(curr_quaternion))
         {
+            double c_quaternion = {}
+            std::vector<std::vector<double>> c_matrix = {{q[3], q[2], -q[1], -q[0]},
+                                                         {-q[2], q[3], q[0], -q[1]},
+                                                         {q[1], -q[0], q[3], -q[2]},
+                                                         {q[0], q[1], q[2], q[3]}}
+                                                         
             error_quaternion[i] += quat_matrix[i][j] * curr_quaternion[j];
         }
     }
