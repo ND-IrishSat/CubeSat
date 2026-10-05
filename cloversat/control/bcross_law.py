@@ -21,11 +21,16 @@ Related open questions: OQ-4 (detumble threshold/time sets k).
 Later:
     - Wheel handoff late in detumble.
 """
+
+import numpy as np
+
 from __future__ import annotations
 
 from typing import Sequence
 
 from cloversat.datatypes.vector_types import Vec3
+
+
 
 
 def bcross_dipole(omega_body: Vec3, B_body: Vec3, gain: float) -> Vec3:
@@ -43,7 +48,7 @@ def bcross_dipole(omega_body: Vec3, B_body: Vec3, gain: float) -> Vec3:
 
 
 def bdot_dipole(B_history_body: Sequence[Vec3], sample_dt: float, gain: float) -> Vec3:
-    """B-dot fallback dipole ``m = -k dB/dt / |B|^2`` when the gyro is unavailable.
+    """B-dot fallback dipole ``m = -k dB/dt / |B|^2`` when the gyro is unavailable. 
 
     Args:
         B_history_body: Recent clean field samples, oldest first [T].
