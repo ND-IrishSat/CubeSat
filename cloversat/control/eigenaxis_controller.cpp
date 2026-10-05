@@ -10,26 +10,30 @@ float eigenaxis_calculation()
 
 float quaternion_calculator()
 {
+
     curr_quaternion = sat.body_q
     target  = // How to pass this in?
 
-    float error_quaternion[4] = {0.0,0.0,0.0,0.0}
 
-    for (int i = 1; i < std::length(curr_quaternion))
+    float error_quaternion[4] = {0.0,0.0,0.0,0.0};
+
+    // main for loop for integrating the error quaternion
+    for (int i = 0; i <= std::length(curr_quaternion))
     {
-        for (int j = 1; i < std::length(curr_quaternion))
+        for (int j = 0; i <= std::length(curr_quaternion))
         {
-            
+            error_quaternion[i] += quat_matrix[i][j] * curr_quaternion[j];
         }
     }
-
-
 
 }
 double main()
 {
     // returns the 
-    if (sat.gyro.isWorking == true){
+    if (sat.gyro.isWorking == true)
+    {
+        float control signal;
+        Vec3 
 
 
     }
