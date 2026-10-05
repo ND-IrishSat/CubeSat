@@ -3,32 +3,30 @@
 #include <vector>
 #include eigenaxis_gains.hpp
 
+using vec = std::vector<float> 
+using matrix = std::vector<std::vector<float>>
+
 float eigenaxis_calculation()
 {
 
     // includes control signal calculation
 }
 
-float quaternion_calculator()
+float quaternion_calculator(vec curr_quaternion, vec comm_quaternion )
 {
 
-    curr_quaternion = sat.body_q
-    target  = // How to pass this in?
+    matrix c_matrix = {{q[3], q[2], -q[1], -q[0]},
+                                                 {-q[2], q[3], q[0], -q[1]},
+                                                 {q[1], -q[0], q[3], -q[2]},
+                                                 {q[0], q[1], q[2], q[3]}};
 
-
-    float error_quaternion[4] = {0.0,0.0,0.0,0.0};
+    vec error_quaternion = {0.0,0.0,0.0,0.0};
 
     // main for loop for integrating the error quaternion
     for (int i = 0; i <= std::length(curr_quaternion))
     {
         for (int j = 0; i <= std::length(curr_quaternion))
         {
-            double c_quaternion = {}
-            std::vector<std::vector<double>> c_matrix = {{q[3], q[2], -q[1], -q[0]},
-                                                         {-q[2], q[3], q[0], -q[1]},
-                                                         {q[1], -q[0], q[3], -q[2]},
-                                                         {q[0], q[1], q[2], q[3]}}
-                                                         
             error_quaternion[i] += quat_matrix[i][j] * curr_quaternion[j];
         }
     }
@@ -39,8 +37,16 @@ double main()
     // returns the 
     if (sat.gyro.isWorking == true)
     {
-        float control signal;
-        Vec3 
+        veccurr_quaternion = self.state.quaternion; // ??? how is self defined in cloversat
+        vec err_quaternion = quaternion_calculator(curr_quaternion, comm_quaternion);
+
+        // skew symmetric matrix of angular velocities
+        matrix omega_matrix = {{0, -self.w[2], self.w[1]},
+                                                         {self.w[2], 0, -self.w[0]},
+                                                         {-self.w[1], self.w[0], 0}};
+
+        control_torque_vec = //skew * inertia_tensor * ang_velocity - D(gain matrix)* ang_velocity - K(gain matrix) * q_err
+
 
 
     }
