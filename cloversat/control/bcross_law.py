@@ -27,19 +27,31 @@ from typing import Sequence
 
 from cloversat.datatypes.vector_types import Vec3
 
+import numpy as np
+
 
 def bcross_dipole(omega_body: Vec3, B_body: Vec3, gain: float) -> Vec3:
     """B-cross detumble dipole ``m = -k (B x omega) / |B|^2``.
 
+    Purpose: This will be used to eventually find torque (elsewhere in another function) which eventally drives the magnetorquer
+
     Args:
-        omega_body: Body rate [rad/s].
-        B_body: Magnetic field, body frame [T].
-        gain: k [kg*m^2/s].
+        omega_body: Body rate [rad/s].                  w
+        B_body: Magnetic field, body frame [T].         B
+        gain: k [kg*m^2/s].                             k
 
     Returns:
-        Dipole [A*m^2]; zero vector if |B| == 0.
+        Dipole [A*m^2]; zero vector if |B| == 0.        m
     """
-    raise NotImplementedError
+    cross = np.cross(B_body, omega_body)    # B x w     w is omega
+    B_magnitude = np.linalg.norm(B_body)    # |B|
+    B_magnitude_squared = B_magnitude**2    # |B|^2
+
+    if B_magnitude == 0:
+        return np.zeros(3, dtype=np.float64)
+
+    m_body = -gain*(cross/B_magnitude_squared)  #m = -k (B x omega) / |B|^2
+    return m_body
 
 
 def bdot_dipole(B_history_body: Sequence[Vec3], sample_dt: float, gain: float) -> Vec3:
