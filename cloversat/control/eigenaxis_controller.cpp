@@ -9,16 +9,16 @@ using matrix = std::vector<std::vector<float>>
 float eigenaxis_calculation()
 {
 
-    // includes control signal calculation
+    // includes control torque signal calculation
 }
 
 float quaternion_calculator(vec curr_quaternion, vec comm_quaternion )
 {
 
     matrix c_matrix = {{q[3], q[2], -q[1], -q[0]},
-                                                 {-q[2], q[3], q[0], -q[1]},
-                                                 {q[1], -q[0], q[3], -q[2]},
-                                                 {q[0], q[1], q[2], q[3]}};
+                       {-q[2], q[3], q[0], -q[1]},
+                       {q[1], -q[0], q[3], -q[2]},
+                       {q[0], q[1], q[2], q[3]}};
 
     vec error_quaternion = {0.0,0.0,0.0,0.0};
 
@@ -42,8 +42,8 @@ double main()
 
         // skew symmetric matrix of angular velocities
         matrix omega_matrix = {{0, -self.w[2], self.w[1]},
-                                                         {self.w[2], 0, -self.w[0]},
-                                                         {-self.w[1], self.w[0], 0}};
+                               {self.w[2], 0, -self.w[0]},
+                               {-self.w[1], self.w[0], 0}};
 
         control_torque_vec = //skew * inertia_tensor * ang_velocity - D(gain matrix)* ang_velocity - K(gain matrix) * q_err
 
