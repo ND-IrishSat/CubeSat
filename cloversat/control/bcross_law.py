@@ -43,15 +43,32 @@ def bcross_dipole(omega_body: Vec3, B_body: Vec3, gain: float) -> Vec3:
     Returns:
         Dipole [A*m^2]; zero vector if |B| == 0.        m
     """
-    cross = np.cross(B_body, omega_body)    # B x w     w is omega
-    B_magnitude = np.linalg.norm(B_body)    # |B|
-    B_magnitude_squared = B_magnitude**2    # |B|^2
+    # Convert both body-frame vectors to arrays.
+    omega = np.asarray(omega_body, dtype=np.float64)
+    B = np.asarray(B_body, dtype=np.float64)
 
-    if B_magnitude == 0:
+    # Each input must have x, y, and z
+    if omega.shape != (3,) or B.shape != (3,):
+        raise ValueError("omega_body and B_body must each have shape (3,)")
+
+    # Reject NaN and infinity, which would produce an invalid dipole
+    if not np.all(np.isfinite(omega)) or not np.all(np.isfinite(B)):
+        raise ValueError("omega_body and B_body must contain finite values")
+
+    # A negative gain would reverse the damping action
+    if not np.isfinite(gain) or gain < 0:
+        raise ValueError("gain must be finite and nonnegative")
+
+    # Dotting B with itself gives |B|², the denominator of the control law
+    B_squared = float(np.dot(B, B))
+
+    # Avoid division by zero when there is no measured magnetic field
+    if B_squared == 0.0:
         return np.zeros(3, dtype=np.float64)
 
-    m_body = -gain*(cross/B_magnitude_squared)  #m = -k (B x omega) / |B|^2
-    return m_body
+    # B-cross law: m = -gain * (B × omega) / |B|².
+    # The minus sign makes the resulting magnetic torque damp body rotation.
+    return -gain * np.cross(B, omega) / B_squared
 
 
 def bdot_dipole(B_history_body: Sequence[Vec3], sample_dt: float, gain: float) -> Vec3:

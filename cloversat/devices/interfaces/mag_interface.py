@@ -27,7 +27,6 @@ class MagInterface(ABC):
     def init(self) -> None:
         """Bring the device up. Must be safe to call more than once."""
         ...
-
     @abstractmethod
     def self_test(self) -> SelfTestResult:
         """Run the device's self test."""
