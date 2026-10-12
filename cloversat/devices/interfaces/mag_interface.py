@@ -37,3 +37,4 @@ class MagInterface(ABC):
     def read_mag(self) -> Sample[Vec3]:
         """Return the measured field ``B_body`` [T], raw (uncalibrated)."""
         ...
+

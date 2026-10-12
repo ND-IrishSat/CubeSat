@@ -22,6 +22,9 @@ float quaternion_calculator(vec curr_quaternion, vec comm_quaternion )
 
     vec error_quaternion = {0.0,0.0,0.0,0.0};
 
+
+    vec error_
+
     // main for loop for integrating the error quaternion
     for (int i = 0; i <= std::length(curr_quaternion))
     {
