@@ -39,8 +39,10 @@ def B_dot(sat: Magnetorquer_Sat):
         voltage_in: vector representing voltage we are sending along all three magnetorquers (Volts)
     '''
 
+
+
     # find desired magentic dipole/moment needed to counteract angular velocity
-    B_magnitude_squared = np.linalg.norm(sat.B_body)**2
+    B_magnitude_squared = np.linalg.norm(sat.B_body)**2 #may become zero when two axis conincide
     if B_magnitude_squared == 0:
         print("Magnetic field vector magnitude cannot be zero.")
 
@@ -48,7 +50,7 @@ def B_dot(sat: Magnetorquer_Sat):
     if sat.gyro_working:
         # compute magnetic moment using the b-cross control law: - (k / ||B||^2) * (B x w)
         # units: Amps * m^2 (B_body must be in teslas)
-        b_dot_term = np.cross(sat.B_body, sat.w_sat)
+        b_dot_term = np.cross(sat.B_body, sat.w_sat) #cross product problems and singularities
         desiredMagneticMoment = np.array([-(sat.mags[i].k / B_magnitude_squared) * b_dot_term[i] for i in range(len(b_dot_term))])
     else:
         # if gyroscope is off, estimate derivative of B field
@@ -113,7 +115,7 @@ def B_dot(sat: Magnetorquer_Sat):
     # print("magnetic moment: ", magneticMoment)
 
     # convert from desired magnetic moment to voltage required to generate that moment
-    voltage_in = sat.momentToVoltage(desiredMagneticMoment)
+    voltage_in = sat.momentToVoltage(desiredMagneticMoment) 
 
     return voltage_in
 

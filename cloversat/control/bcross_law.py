@@ -39,6 +39,7 @@ def bcross_dipole(omega_body: Vec3, B_body: Vec3, gain: float) -> Vec3:
     Returns:
         Dipole [A*m^2]; zero vector if |B| == 0.
     """
+    
     raise NotImplementedError
 
 
