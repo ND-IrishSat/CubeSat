@@ -8,7 +8,7 @@ using matrix = std::vector<std::vector<float>>
 
 float eigenaxis_calculation()
 {
-
+    
     // includes control torque signal calculation
 }
 
