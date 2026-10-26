@@ -37,6 +37,7 @@ class TorquerSpec:
     """
 
     axis_body: Optional[Vec3] = None
+    # This is legacy code from the og 
     dipole_per_amp: Optional[float] = None
     resistance: Optional[float] = None
     max_voltage: Optional[float] = None

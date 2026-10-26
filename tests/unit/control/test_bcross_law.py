@@ -70,3 +70,13 @@ def test_bdot_rejects_invalid_sample_spacing(sample_dt):
 def test_bdot_rejects_invalid_sample_shape():
     with pytest.raises(ValueError):
         bdot_dipole([np.ones(3), np.ones(2)], 1.0, 1e-4)
+
+def test_bdot_five_point_handles_curved_history():
+    history = [
+        np.array([x * 1e-6, 0.0, 2e-5])
+        for x in (12, 6, 2, 0, 0)
+    ]
+
+    m = bdot_dipole(history, sample_dt=1.0, gain=1e-4)
+
+    np.testing.assert_allclose(m, [-0.25, 0.0, 0.0], atol=1e-12)
