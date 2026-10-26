@@ -70,20 +70,43 @@ def bcross_dipole(omega_body: Vec3, B_body: Vec3, gain: float) -> Vec3:
     # The minus sign makes the resulting magnetic torque damp body rotation.
     return -gain * np.cross(B, omega) / B_squared
 
-
 def bdot_dipole(B_history_body: Sequence[Vec3], sample_dt: float, gain: float) -> Vec3:
-    """B-dot fallback dipole ``m = -k dB/dt / |B|^2`` when the gyro is unavailable.
+    """Return a B-dot detumbling dipole from body-frame field samples.
 
-    Args:
-        B_history_body: Recent clean field samples, oldest first [T].
-        sample_dt: Spacing between samples [s].
-        gain: k.
-
-    Returns:
-        Dipole [A*m^2]; zero vector if |B| == 0 or history is too short.
+    Samples are ordered oldest first, measured in Tesla, and spaced
+    sample_dt seconds apart. Returns zero if fewer than two samples
+    are available or the latest magnetic field is zero.
     """
-    raise NotImplementedError
+    if not np.isfinite(sample_dt) or sample_dt <= 0:
+        raise ValueError("sample_dt must be finite and positive")
+    if not np.isfinite(gain) or gain < 0:
+        raise ValueError("gain must be finite and nonnegative")
+    if len(B_history_body) < 2:
+        return np.zeros(3, dtype=np.float64)
 
+    samples = np.asarray(B_history_body[-5:], dtype=np.float64)
+    if samples.ndim != 2 or samples.shape[1] != 3:
+        raise ValueError("each magnetic-field sample must have shape (3,)")
+    if not np.all(np.isfinite(samples)):
+        raise ValueError("magnetic-field samples must contain finite values")
+
+    B = samples[-1]
+    B_squared = float(np.dot(B, B))
+    if B_squared == 0.0:
+        return np.zeros(3, dtype=np.float64)
+
+    if len(samples) == 5:
+        dB_dt = (
+            3 * samples[-5]
+            - 16 * samples[-4]
+            + 36 * samples[-3]
+            - 48 * samples[-2]
+            + 25 * samples[-1]
+        ) / (12 * sample_dt)
+    else:
+        dB_dt = (samples[-1] - samples[-2]) / sample_dt
+
+    return -gain * dB_dt / B_squared
 
 # ---- LEGACY START: legacy/Controllers/B_dot.py (reference only, not wired up) ----
 '''
