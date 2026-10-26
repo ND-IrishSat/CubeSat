@@ -6,6 +6,29 @@
 using vec = std::vector<float> 
 using matrix = std::vector<std::vector<float>>
 
+class eigenaxis_test
+{
+    private:
+        
+        std::vector<float> omega;
+        std::vector<std::vector<float>> skew;
+    
+    public:
+
+        eigenaxis_test(std::vector<float> omega)
+        : omega(omega), skew({{0,0,0},{0,0,0},{0,0,0}}) {}
+
+        double update_eigenaxis()
+        {
+            omega = sat.body.angular_velocity // ?????
+            skew = {{0, -omega[2], omega[1]}, 
+                    {omega[2], 0, -omega[0]},
+                    {-omega[1], omega[0], 0}};
+        }
+
+
+};
+
 float eigenaxis_calculation()
 {
     
@@ -35,6 +58,7 @@ float quaternion_calculator(vec curr_quaternion, vec comm_quaternion )
     }
 
 }
+
 double main()
 {
     // returns the 
