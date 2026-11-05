@@ -108,3 +108,17 @@ Good first picks: `persistence.py` (majority vote is easy to test) and
 
 The `check_state()` bugs (one if/elif chain; detumble exit on true state) are
 marked `TODO(bug)` in `state_manager.py` and `detumble_mode.py`.
+
+
+
+# State/Mode Conditions
+
+X = Potentially used (supplement), N = Neccessary
+
+Pointing/Operational
+Sensors | Sun Point | GPS Point | Ground Point | Momentum Dump | Low Power
+| --- | --- | --- | --- | --- |  --- |
+Sun Sensor | N | X | X | -- | -- |
+Gyroscope | X | N | N | N | -- |
+
+
