@@ -9,30 +9,30 @@ import numpy
 """
 Reaction Wheel Simulation: 
 1. Map torque body request to torque request per wheel
-2. Map 
 2. Map that voltage to pwm
 3. Send that pwm to pin 
 
 pwm (pulse width modulation): like antilock brakes (on and off max 50% of the time)
 
-Link to sources: https://docs.google.com/document/d/1ZfniI7BwBoRzMWSKxQ3m8HrUjTOSw5HzS2pyHeFh7E8/edit?usp=sharing 
+sources: https://docs.google.com/document/d/1ZfniI7BwBoRzMWSKxQ3m8HrUjTOSw5HzS2pyHeFh7E8/edit?usp=sharing 
 
-Link to paper notes: https://drive.google.com/file/d/1A0r9c32eGkZr2fDVYfKHC6ajhtUSqVIR/view?usp=sharing 
+paper notes: https://drive.google.com/file/d/1A0r9c32eGkZr2fDVYfKHC6ajhtUSqVIR/view?usp=sharing 
 """
 
-class ReactionWheelSimsThree:
+class ReactionWheelSims:
     def __init__(self, W, J):
         self.W = W  #Ask mechanical team for spin axes of reaction wheels. W  [r1, ..., rn] where ri is the unit vector of the ith
-                #reaction wheel spin axis (AVS) - from "Autonomous Vehicle Simulation (AVS) Laboratory, University of Colorado"
+                    #reaction wheel spin axis (AVS) - from "Autonomous Vehicle Simulation (AVS) Laboratory, University of Colorado"
 
         self.J = J #Ask at meeting if this is calculated or found from CAD or something
                 #RW spin intertia about spin axis
 
         #NOTE: I just put in a random value for each of these to test it, they should be imported from some params file I think
-        MAX_VOLTAGE = 3 #max velocity for reaction wheels
-        MIN_VOLTAGE = 3 #min velocity for reaction wheels, defined as voltage below which motor does not apply torque 
-        MAX_TORQUE = 3 #max torque reaction wheels
-        MAX_PWM = 3 
+        MAX_VOLTAGE = 5 #max voltage for reaction wheels, estimated with claude
+        MIN_VOLTAGE = 0.1 #min voltage for reaction wheels, defined as voltage below which motor does not apply torque 
+                        #estimated with claude
+        MAX_TORQUE = 5 #max torque reaction wheels, estimated with claude
+        MAX_PWM = 0.95 #pulse width modulation, estimated with claude
 
 
     def torque_to_pwm(self, L: float): #L is torque body request for entire cubesat - should be result from magnetorquer
@@ -56,7 +56,7 @@ class ReactionWheelSimsThree:
 
         #get actual angular acceleration from motors? is that possible
         ang_accel = []
-        ang_accel = [3, 3, 3] #measure from motors somehow, for now read examples from a file?
+        ang_accel = [3, 3, 3] #Mechanical team said we can get velocity (comes through as frequency value)
 
         torque_actual = []
         torque_actual = numpy.linalg.diagonal(J)@ang_accel
@@ -81,5 +81,3 @@ class ReactionWheelSimsThree:
         #referenced wheel_allocation.py, is this right?
         pwm = []
         pwm = (voltages / MAX_VOLTAGE) * MAX_PWM
-        #how to send this to pin?
-    
