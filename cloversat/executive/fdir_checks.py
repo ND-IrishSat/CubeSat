@@ -15,6 +15,7 @@ Later:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -23,17 +24,34 @@ if TYPE_CHECKING:
     from cloversat.datatypes.state_types import StateEstimate
 
 
+class SafeReason(Enum):
+    """Why FDIR wants SAFE. SAFE stays active until every reason has cleared."""
+
+    LOW_POWER = "low_power"
+    BOOT_LOOP = "boot_loop"
+    SUBSYSTEM_RECOVERY = "subsystem_recovery"  # a subsystem is being restarted
+    CRITICAL_FAULT = "critical_fault"
+    ESTIMATOR_INVALID = "estimator_invalid"
+
+
 @dataclass
 class FdirFlags:
     """FDIR output for this tick.
 
     Attributes:
-        force_safe: State manager must enter SAFE.
+        force_safe: State manager must enter SAFE. True whenever
+            ``safe_reasons`` is non-empty.
+        safe_reasons: Active reasons for SAFE. SAFE reads these to know what
+            has to clear before it can exit.
+        low_power: Battery is below the entry threshold. Hysteresis (separate
+            enter and exit thresholds) is applied upstream, never in a mode.
         faults: Names of active faults.
         disabled_subsystems: Subsystems FDIR has disabled.
     """
 
     force_safe: bool = False
+    safe_reasons: set[SafeReason] = field(default_factory=set)
+    low_power: bool = False
     faults: list[str] = field(default_factory=list)
     disabled_subsystems: list[str] = field(default_factory=list)
 

@@ -36,7 +36,7 @@ never imports the mode files. Exit criteria read **only** `StateEstimate` and
           ▼                                              │
 BOOT ─► DETUMBLE ─► ORIENT_TRANSITION ─► OPERATIONAL ────┤
  │         ▲              │                              │
- │         └── rates high ┘          any mode ─(FDIR)─► SAFE ─(OQ-7)─┘
+ │         └── rates high ┘          any mode ─(FDIR)─► SAFE ─(cleared)─► DETUMBLE
  └─ resume point from PersistedState (skip completed steps)
 ```
 
@@ -46,7 +46,7 @@ BOOT ─► DETUMBLE ─► ORIENT_TRANSITION ─► OPERATIONAL ────┤
 | DETUMBLE | Torquers only (B-cross, with B-dot as fallback) | Sensed rate below threshold on all axes for N s, with hysteresis (OQ-4) |
 | ORIENT_TRANSITION | Deploy if not deployed, acquire attitude (OQ-5), get a GPS fix | Deployed + attitude valid + GPS fix |
 | OPERATIONAL | SUN_POINT by default, with inertial hold in eclipse. GPS_POINT, GROUND_POINT and MOMENTUM_DUMP preempt it and always return to SUN_POINT (OQ-6) | FDIR fault → SAFE |
-| SAFE | Detumble, find the sun, hold. Minimal loads, beacon | Autonomous recovery (OQ-7) |
+| SAFE | Fallback for low power and subsystem recovery. Health checks, beacon and minimal loads only, plus a slow, slew-limited sun-seek to recharge when attitude, wheels and power allow it | Every FDIR reason cleared for a hold time, then DETUMBLE (OQ-7) |
 
 There's no COAST mode: the eclipse hold inside SUN_POINT covers it.
 

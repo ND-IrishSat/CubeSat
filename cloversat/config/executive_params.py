@@ -53,6 +53,14 @@ class ExecutiveParams:
         boot_loop_window_s: Boot-loop window [s].
         control_period_s: Control tick period [s].
         heartbeat_period_s: Heartbeat period [s].
+        safe_slew_rate: Max SAFE sun-seek slew rate [rad/s]. Kept far below
+            the OPERATIONAL limit so SAFE draws little wheel power.
+        safe_gain_scale: Multiplier on the wheel PD gains while in SAFE.
+        safe_min_dwell_s: Minimum time in SAFE before exit is considered [s].
+            Prevents chatter at a threshold.
+        safe_clear_hold_s: Every SAFE reason must stay cleared this long [s].
+        safe_wheel_momentum_limit: Stop wheel sun-seeking above this
+            |h_wheels| [N*m*s]; SAFE has no momentum dumping.
     """
 
     detumble_rate_threshold: Optional[float] = None
@@ -68,3 +76,8 @@ class ExecutiveParams:
     boot_loop_window_s: Optional[float] = None
     control_period_s: Optional[float] = None
     heartbeat_period_s: float = 1.0
+    safe_slew_rate: Optional[float] = None
+    safe_gain_scale: Optional[float] = None
+    safe_min_dwell_s: Optional[float] = None
+    safe_clear_hold_s: Optional[float] = None
+    safe_wheel_momentum_limit: Optional[float] = None

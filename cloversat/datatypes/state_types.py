@@ -71,6 +71,8 @@ class PersistedState:
         reset_count: Total resets since first boot.
         last_reset_cause: Reset cause string from boot.
         disabled_subsystems: Subsystems FDIR has disabled.
+        seq: Save counter, set by ``Persistence``. Lets a load tell a newer
+            copy from a stale one after a reset mid-save.
     """
 
     mode: Mode
@@ -80,6 +82,7 @@ class PersistedState:
     reset_count: int = 0
     last_reset_cause: str = ""
     disabled_subsystems: list[str] = field(default_factory=list)
+    seq: int = 0
 
 
 @dataclass

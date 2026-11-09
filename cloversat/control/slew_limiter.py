@@ -4,7 +4,7 @@ Purpose:  Rate-limit changes in the attitude target so a new target doesn't
           command a step the wheels can't follow.
 Inputs:   Previous limited target, new raw target, max slew rate [rad/s], dt [s].
 Outputs:  Limited ``AttitudeTarget``.
-Status:   [LATER]
+Status:   [NEW]  (SAFE's slow sun-seek needs it)
 Port from: none
 """
 from __future__ import annotations
