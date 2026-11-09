@@ -1,4 +1,3 @@
-// this code is a draft for the eigenaxis controller
 #include <iostream>
 #include <vector>
 #include eigenaxis_gains.hpp
@@ -6,82 +5,92 @@
 using vec = std::vector<float> 
 using matrix = std::vector<std::vector<float>>
 
-class eigenaxis_test
+class eigenaxis
 {
     private:
-        std::vector<float> omega;
-        std::vector<std::vector<float>> skew;
-        double D; // constant gain matrix to multiply angular velocity
-        double K; // constant gain matrix to multiply the reference quaternion
+        vec omega;
+        matrix skew;
+        matrix  D; // constant gain matrix to multiply angular velocity
+        matrix K; // constant gain matrix to multiply the reference quaternion
 
     public:
-        eigenaxis_test(std::vector<float> omega)
-        : omega(omega), skew({{0,0,0},{0,0,0},{0,0,0}}), D(constants::D), K(constants::K) {}
+        eigenaxis_test(matrix D_input, matrix K_input)
+        : omega(omega), skew({{0,0,0},{0,0,0},{0,0,0}}), D(D_input), K(K_input) {}
 
-        std::vector<double> operator*(std::vector<std::vector<double>> matrix, std::vector<double> vec)
-        {   
-            // assume inputs are 3x3 and 3x1
-            first_index = matrix[0][0] * vec[0] + matrix[0][1] * vec[1] + matrix[0][2] * vec[2];
-            second_index = matrix[1][0] * vec[0] + matrix[1][1] * vec[1] + matrix[1][2] * vec[2];
-            thrid_index = matrix[2][0] * vec[0] + matrix[2][1] * vec[1] + matrix[2][2] * vec[2];
-            
-            return {first_index, second_index, third_index};
-        }
-
-        double update_eigenaxis()
+        double update_eigenaxis(std::vector<float> omega)
         {
-            omega = sat.body.angular_velocity // ?????
-            skew = {{0, -omega[2], omega[1]}, 
-                    {omega[2], 0, -omega[0]},
-                    {-omega[1], omega[0], 0}};
+            this.omega = sat.body.angular_velocity // ????? for now, assume we directly get this from the IMU sensors
+            this.skew = {{0, -omega[2], omega[1]}, 
+                         {omega[2], 0, -omega[0]},
+                         {-omega[1], omega[0], 0}};
+        
+            // J is matrix
+            float control_signal = -skew * sat.body.J * omega - D * omega - K * q_reference;
 
+        }
+                
+        vec quaternion_calculator(vec current_q, vec commanded_q)
+        {   
+            // define for ease of scripting commanded matrix
+            vec q = commanded_q;
 
-            control_signal = -skew * sat.body.J * omega - D * omega - K * q_reference;
+            // compute matrix in formula for error quaternion
+            matrix commanded_matrix = {{q[3], q[2], -q[1], -q[0]},
+                            {-q[2], q[3], q[0], -q[1]},
+                            {q[1], -q[0], q[3], -q[2]},
+                            {q[0], q[1], q[2], q[3]}};
 
+            vec error_quaternion = eiganaxis::operator*(commanded_matrix, current_q)
         }
 };
 
-float eigenaxis_calculation()
-{
-    // includes control torque signal calculation
+eigenaxis operator*(const matrix& m, const vector& v)
+{   
+    // assume inputs are 3x3 and 3x1
+    float first_row = m[0][0] * v[0] + m[0][1] * v[1] + m[0][2] * v[2];
+    float second_row = m[1][0] * v[0] + m[1][1] * v[1] + m[1][2] * v[2];
+    float thrid_row = m[2][0] * v[0] + m[2][1] * v[1] + m[2][2] * v[2];
+    
+    return {first_row, second_row, third_row};
 }
 
-float quaternion_calculator(vec curr_quaternion, vec comm_quaternion )
+eigenaxis operator*(const matrix& m, const matrix& p)
 {
-    matrix c_matrix = {{q[3], q[2], -q[1], -q[0]},
-                       {-q[2], q[3], q[0], -q[1]},
-                       {q[1], -q[0], q[3], -q[2]},
-                       {q[0], q[1], q[2], q[3]}};
+    // compute 0-th row of the resulting matrix
+    id_0_0 = m[0][0] * p[0][0] + m[0][1] * p[1][0] + m[0][2] * p[2][0];
+    id_0_1 = m[0][0] * p[0][1] + m[0][1] * p[1][1] + m[0][2] * p[2][1];
+    id_0_2 = m[0][0] * p[0][2] + m[0][1] * p[1][2] + m[0][2] * p[2][2];
 
-    vec error_quaternion = {0.0,0.0,0.0,0.0};
+    // 1-st row
+    id_1_0 = m[1][0] * p[0][0] + m[1][1] * p[1][0] + m[1][2] * p[2][0];
+    id_1_1 = m[1][0] * p[0][1] + m[1][1] * p[1][1] + m[1][2] * p[2][1];
+    id_1_2 = m[1][0] * p[0][2] + m[1][1] * p[1][2] + m[1][2] * p[2][2];
+    
+    // 2-nd row
+    id_2_0 = m[2][0] * p[0][0] + m[2][1] * p[1][0] + m[2][2] * p[2][0];
+    id_2_1 = m[2][0] * p[0][1] + m[2][1] * p[1][1] + m[2][2] * p[2][1];
+    id_2_2 = m[2][0] * p[0][2] + m[2][1] * p[1][2] + m[2][2] * p[2][2];
 
-    // main for loop for integrating the error quaternion
-    for (int i = 0; i <= std::length(curr_quaternion))
-    {
-        for (int j = 0; i <= std::length(curr_quaternion))
-        {
-            error_quaternion[i] += quat_matrix[i][j] * curr_quaternion[j];
-        }
-    }
+    matrix result = {{id_0_0, id_0_1, id_0_2},
+                     {id_1_0, id_1_1, id_1_2},
+                     {id_2_0, id_2_1, id_2_2}};
+
+    return result;
 }
 
-double main()
-{
-    // returns the 
-    if (sat.gyro.isWorking == true)
-    {
-        veccurr_quaternion = self.state.quaternion; // ??? how is self defined in cloversat
-        vec err_quaternion = quaternion_calculator(curr_quaternion, comm_quaternion);
+int main(){
 
-        // skew symmetric matrix of angular velocities
-        matrix omega_matrix = {{0, -self.w[2], self.w[1]},
-                               {self.w[2], 0, -self.w[0]},
-                               {-self.w[1], self.w[0], 0}};
+    // testing on operator overloads
+    matrix t1 = {{0, 1, 1},
+                 {1,3,4},
+                 {4,1,2}};
 
-        control_torque_vec = //skew * inertia_tensor * ang_velocity - D(gain matrix)* ang_velocity - K(gain matrix) * q_err
-    }
+                 
+    matrix t2 = {{5, 2, 1},
+                 {4,3,3},
+                 {4,6,1}};
+
+    eigenaxis_test::operator*(t1, t2);
+
+    
 }
-
-
-
-
