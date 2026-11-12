@@ -12,7 +12,7 @@ the affected files.
 | OQ-4 | Numeric requirements: detumble threshold/time, pointing accuracy, power margins | `executive/detumble_mode.py`, gains/thresholds in `config/` |
 | OQ-5 | Initial attitude acquisition: sun search + TRIAD vs two-epoch mag TRIAD vs filter convergence | `estimation/attitude_init.py`, `executive/orient_transition_mode.py` |
 | OQ-6 | Operational sub-mode selection: priority scheduler vs fixed cycle | `executive/operational_mode.py` |
-| OQ-7 | SAFE exit criteria (hold time, boot-loop clearing rule), SAFE-mode comms, passive vs magnetometer-only B-dot when attitude is invalid | `executive/safe_mode.py` |
+| OQ-7 | SAFE hold/dwell numbers (placeholders in `ExecutiveParams`), SAFE-mode comms, passive vs magnetometer-only B-dot when attitude is invalid | `executive/safe_mode.py` |
 | OQ-8 | No uplink vs radio licensing (transmitter shut-off). Owned by comms. | `executive/telemetry.py`, `estimation/sgp4_propagator.py` |
 | OQ-9 | Telemetry record format. Decided with comms. | `executive/telemetry.py`, `datatypes/health_types.py` |
 | OQ-10 | Flight language/platform (Python on Pi vs C) | Whole package |

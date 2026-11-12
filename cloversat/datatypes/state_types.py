@@ -20,7 +20,6 @@ from typing import Optional
 import numpy as np
 import numpy.typing as npt
 
-from cloversat.datatypes.command_types import Mode
 from cloversat.datatypes.vector_types import Quat, Vec3
 
 
@@ -63,24 +62,24 @@ class StateEstimate:
 class PersistedState:
     """Executive state that must survive a reset (triple-copy on disk).
 
+    There is deliberately no saved mode: every boot re-enters through DETUMBLE,
+    so a resume point would have no reader.
+
     Attributes:
-        mode: Last operating mode.
         deployed: Deployables confirmed deployed.
         deploy_attempts: Number of deploy attempts so far.
         t_saved: Time of the save [s, RTC].
-        reset_count: Total resets since first boot.
-        last_reset_cause: Reset cause string from boot.
+        recent_reset_times: RTC times [s] of recent boots, oldest first. BOOT
+            trims it, so it only ever holds what boot-loop detection needs.
         disabled_subsystems: Subsystems FDIR has disabled.
         seq: Save counter, set by ``Persistence``. Lets a load tell a newer
             copy from a stale one after a reset mid-save.
     """
 
-    mode: Mode
     deployed: bool = False
     deploy_attempts: int = 0
     t_saved: float = 0.0
-    reset_count: int = 0
-    last_reset_cause: str = ""
+    recent_reset_times: list[float] = field(default_factory=list)
     disabled_subsystems: list[str] = field(default_factory=list)
     seq: int = 0
 

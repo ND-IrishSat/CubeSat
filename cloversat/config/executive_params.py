@@ -51,6 +51,8 @@ class ExecutiveParams:
         deploy_max_attempts: Give up after this many attempts.
         boot_loop_resets: Resets within the window that count as a boot loop.
         boot_loop_window_s: Boot-loop window [s].
+        boot_health_wait_s: How long BOOT waits for FDIR's first valid flags
+            before moving on [s]. Bounded so a dead heartbeat can't hang BOOT.
         control_period_s: Control tick period [s].
         heartbeat_period_s: Heartbeat period [s].
         safe_slew_rate: Max SAFE sun-seek slew rate [rad/s]. Kept far below
@@ -72,12 +74,14 @@ class ExecutiveParams:
     deploy_inhibit_s: Optional[float] = None
     deploy_max_burn_s: Optional[float] = None
     deploy_max_attempts: Optional[int] = None
-    boot_loop_resets: Optional[int] = None
-    boot_loop_window_s: Optional[float] = None
+    boot_loop_resets: int = 3
+    boot_loop_window_s: float = 600.0
+    boot_health_wait_s: float = 5.0
     control_period_s: Optional[float] = None
     heartbeat_period_s: float = 1.0
     safe_slew_rate: Optional[float] = None
     safe_gain_scale: Optional[float] = None
-    safe_min_dwell_s: Optional[float] = None
-    safe_clear_hold_s: Optional[float] = None
+    # Placeholders until the OQ-7 numbers are settled.
+    safe_min_dwell_s: float = 120.0
+    safe_clear_hold_s: float = 60.0
     safe_wheel_momentum_limit: Optional[float] = None

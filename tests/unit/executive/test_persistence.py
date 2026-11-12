@@ -1,7 +1,6 @@
 import json
 import zlib
 
-from cloversat.datatypes.command_types import Mode
 from cloversat.datatypes.state_types import PersistedState
 from cloversat.devices.interfaces.storage_interface import StorageInterface
 from cloversat.executive.persistence import Persistence, decode, encode, majority_vote
@@ -29,12 +28,12 @@ class FakeStorage(StorageInterface):
 
 
 def state(**kw):
-    return PersistedState(mode=kw.pop("mode", Mode.OPERATIONAL), **kw)
+    return PersistedState(**kw)
 
 
 def test_round_trip():
-    s = state(deployed=True, deploy_attempts=2, t_saved=12.5, reset_count=3,
-              last_reset_cause="watchdog", disabled_subsystems=["gps"], seq=7)
+    s = state(deployed=True, deploy_attempts=2, t_saved=12.5,
+              recent_reset_times=[100.0, 160.5], disabled_subsystems=["gps"], seq=7)
     assert decode(encode(s)) == s
 
 
@@ -54,9 +53,10 @@ def test_decode_rejects_valid_crc_with_bad_values():
     good = json.loads(encode(state())[4:])
     assert decode(_reblob(good)) is not None
     assert decode(_reblob({**good, "v": 99})) is None           # unknown version
-    assert decode(_reblob({**good, "mode": "nope"})) is None
+    assert decode(_reblob({**good, "recent_reset_times": ["x"]})) is None
+    assert decode(_reblob({**good, "recent_reset_times": [True]})) is None
     assert decode(_reblob({**good, "deployed": 1})) is None     # not a bool
-    assert decode(_reblob({**good, "reset_count": -1})) is None
+    assert decode(_reblob({**good, "deploy_attempts": -1})) is None
     assert decode(_reblob({**good, "deploy_attempts": True})) is None
     extra = {**good, "surprise": 1}
     assert decode(_reblob(extra)) is None                       # unknown field
@@ -75,15 +75,15 @@ def test_vote_skips_invalid_and_handles_none():
 
 
 def test_vote_same_seq_disagreement_uses_agreement():
-    a, b = state(reset_count=1, seq=2), state(reset_count=9, seq=2)
+    a, b = state(deploy_attempts=1, seq=2), state(deploy_attempts=9, seq=2)
     assert majority_vote([a, b, b]) == b
     assert majority_vote([a, b, None]) == a  # tie -> earliest
 
 
 def test_save_then_load():
     p = Persistence(FakeStorage())
-    assert p.save(state(reset_count=4)) == 3
-    assert p.load().reset_count == 4
+    assert p.save(state(deploy_attempts=4)) == 3
+    assert p.load().deploy_attempts == 4
 
 
 def test_seq_increments_each_save():

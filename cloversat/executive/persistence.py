@@ -28,21 +28,18 @@ from collections import Counter
 from dataclasses import asdict, replace
 from typing import TYPE_CHECKING, Optional
 
-from cloversat.datatypes.command_types import Mode
 from cloversat.datatypes.state_types import PersistedState
 
 if TYPE_CHECKING:
     from cloversat.devices.interfaces.storage_interface import StorageInterface
 
-FORMAT_VERSION = 1
+FORMAT_VERSION = 2
 _CRC_BYTES = 4
 
 
 def encode(state: PersistedState) -> bytes:
     """Serialize with an integrity check (CRC32 of the JSON payload)."""
-    fields = asdict(state)
-    fields["mode"] = state.mode.value
-    payload = json.dumps({"v": FORMAT_VERSION, **fields}, sort_keys=True, separators=(",", ":")).encode()
+    payload = json.dumps({"v": FORMAT_VERSION, **asdict(state)}, sort_keys=True, separators=(",", ":")).encode()
     return zlib.crc32(payload).to_bytes(_CRC_BYTES, "big") + payload
 
 
@@ -57,7 +54,6 @@ def decode(blob: bytes) -> Optional[PersistedState]:
         d = json.loads(payload)
         if d.pop("v") != FORMAT_VERSION:
             return None
-        d["mode"] = Mode(d["mode"])
         state = PersistedState(**d)
     except (ValueError, KeyError, TypeError):
         return None
@@ -69,15 +65,20 @@ def decode(blob: bytes) -> Optional[PersistedState]:
 def _fields_ok(s: PersistedState) -> bool:
     """A passing CRC doesn't make the values sane (e.g. a writer bug)."""
     # bool is a subclass of int, so it is excluded explicitly.
-    counts = (s.deploy_attempts, s.reset_count, s.seq)
+    counts = (s.deploy_attempts, s.seq)
     return (
         isinstance(s.deployed, bool)
         and all(isinstance(n, int) and not isinstance(n, bool) and n >= 0 for n in counts)
-        and isinstance(s.t_saved, (int, float))
-        and isinstance(s.last_reset_cause, str)
+        and _is_number(s.t_saved)
+        and isinstance(s.recent_reset_times, list)
+        and all(_is_number(x) for x in s.recent_reset_times)
         and isinstance(s.disabled_subsystems, list)
         and all(isinstance(x, str) for x in s.disabled_subsystems)
     )
+
+
+def _is_number(x: object) -> bool:
+    return isinstance(x, (int, float)) and not isinstance(x, bool)
 
 
 def majority_vote(copies: list[Optional[PersistedState]]) -> Optional[PersistedState]:

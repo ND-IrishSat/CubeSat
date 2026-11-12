@@ -32,6 +32,7 @@ class SafeReason(Enum):
     SUBSYSTEM_RECOVERY = "subsystem_recovery"  # a subsystem is being restarted
     CRITICAL_FAULT = "critical_fault"
     ESTIMATOR_INVALID = "estimator_invalid"
+    PARAMS_INVALID = "params_invalid"
 
 
 @dataclass
@@ -39,6 +40,9 @@ class FdirFlags:
     """FDIR output for this tick.
 
     Attributes:
+        valid: False until FDIR has evaluated its first ``HealthReport``.
+            "No reasons" means nothing while this is False, so BOOT waits for
+            it and SAFE will not treat an invalid tick as cleared.
         force_safe: State manager must enter SAFE. True whenever
             ``safe_reasons`` is non-empty.
         safe_reasons: Active reasons for SAFE. SAFE reads these to know what
@@ -49,6 +53,7 @@ class FdirFlags:
         disabled_subsystems: Subsystems FDIR has disabled.
     """
 
+    valid: bool = False
     force_safe: bool = False
     safe_reasons: set[SafeReason] = field(default_factory=set)
     low_power: bool = False

@@ -31,18 +31,18 @@ into each other.
 never imports the mode files. Exit criteria read **only** `StateEstimate` and
 `FdirFlags`.
 
-```
-          ┌──────────────────────────────────────────────┐
-          ▼                                              │
-BOOT ─► DETUMBLE ─► ORIENT_TRANSITION ─► OPERATIONAL ────┤
- │         ▲              │                              │
- │         └── rates high ┘          any mode ─(FDIR)─► SAFE ─(cleared)─► DETUMBLE
- └─ resume point from PersistedState (skip completed steps)
-```
+The full mode graph, the OPERATIONAL sub-modes, the BOOT steps and the SAFE
+phases are drawn in [`docs/state_flow.md`](../../docs/state_flow.md) from the
+transition tables in code (`MODE_TRANSITIONS` and friends). A test keeps them in
+sync. Every boot re-enters through DETUMBLE.
+
+A handler that raises is quarantined: the manager records the fault and moves
+that mode to SAFE (see "Handler faults" in `docs/state_flow.md`), so one bad mode
+can't take down the control loop.
 
 | Mode | Behavior | Exit |
 |---|---|---|
-| BOOT | Record the reset cause, load `PersistedState`, verify params, restore time, run boot-loop protection | Next mode in the progression, skipping completed steps |
+| BOOT | Load `PersistedState`, restore time, record this reset, verify params, wait for FDIR's first valid flags | DETUMBLE, or SAFE on a boot loop or bad params |
 | DETUMBLE | Torquers only (B-cross, with B-dot as fallback) | Sensed rate below threshold on all axes for N s, with hysteresis (OQ-4) |
 | ORIENT_TRANSITION | Deploy if not deployed, acquire attitude (OQ-5), get a GPS fix | Deployed + attitude valid + GPS fix |
 | OPERATIONAL | SUN_POINT by default, with inertial hold in eclipse. GPS_POINT, GROUND_POINT and MOMENTUM_DUMP preempt it and always return to SUN_POINT (OQ-6) | FDIR fault → SAFE |
@@ -78,9 +78,12 @@ There's no COAST mode: the eclipse hold inside SUN_POINT covers it.
   three checksummed copies, with atomic writes and a majority vote on read. A
   watchdog reset gets no graceful shutdown, so nothing can wait until shutdown
   to save.
-- **Boot-loop protection:** `boot_mode.py` handles it, for example 3 resets in
-  10 minutes → minimal SAFE and disable the implicated subsystem. With no
-  uplink, this is the only way out of a boot loop.
+- **Boot-loop protection:** `boot_mode.py` keeps recent boot times in
+  `PersistedState`; 3 resets in 10 minutes (`ExecutiveParams`) → SAFE. The check
+  is a pure function of that history, so FDIR re-evaluates it and it clears on
+  its own as time passes. With no uplink, this is the only way out of a boot
+  loop. Disabling the implicated subsystem isn't implemented: nothing
+  identifies it yet.
 - **Deployment:** `deployment_sequence.py` runs preconditions (inhibit timer,
   not deployed, attempts < limit) → `prepare` → verify → `deploy` → verify
   `read_deployed` → persist → retry policy, and calls `safe()` in `finally`.
