@@ -7,7 +7,9 @@ using matrix = std::vector<std::vector<float>>
 
 template <typename T>
 
-T operator*(const T& m, const T& v)
+// need a class for these operators?
+
+matrix operator*(const matrix& m, const vec& v)
 {   
     // assume inputs are 3x3 and 3x1
     float first_row = m[0][0] * v[0] + m[0][1] * v[1] + m[0][2] * v[2];
@@ -17,7 +19,7 @@ T operator*(const T& m, const T& v)
     return {first_row, second_row, third_row};
 }
 
-T operator*(const T& m, const T& p)
+matrix operator*(const matrix& m, const matrix& p)
 {
     // compute 0-th row of the resulting matrix
     id_0_0 = m[0][0] * p[0][0] + m[0][1] * p[1][0] + m[0][2] * p[2][0];
@@ -54,16 +56,18 @@ class eigenaxis
         eigenaxis(matrix D_input, matrix K_input)
         : omega(omega), skew({{0,0,0},{0,0,0},{0,0,0}}), D(D_input), K(K_input) {}
 
-        double update_eigenaxis(std::vector<float> omega)
+        double update_eigenaxis(std::vector<float> omega, vec q_curr, vec q_desired)
         {
             this.omega = sat.body.angular_velocity // ????? for now, assume we directly get this from the IMU sensors
             this.skew = {{0, -omega[2], omega[1]}, 
                          {omega[2], 0, -omega[0]},
                          {-omega[1], omega[0], 0}};
         
-            // J is matrix
-            float control_signal = -skew * sat.body.J * omega - D * omega - K * q_reference;
+            vec q_error= quaternion_calculator(q_curr, q_desired);
 
+            float control_signal = -skew * sat.body.J * omega - D * omega - K * q_error;
+
+            return control_signal;
         }
                 
         vec quaternion_calculator(vec current_q, vec commanded_q)
@@ -78,14 +82,14 @@ class eigenaxis
                                        {q[0], q[1], q[2], q[3]}};
 
             vec error_quaternion = eiganaxis::operator*(commanded_matrix, current_q)
+
+            return error_quaternion;
         }
 };
 
 // 1-D test simulation run
 int main()
 {
-
-    // testing on operator overloads
     matrix D = {{0, 1, 1},
                 {1,3,4},
                 {4,1,2}};
@@ -104,18 +108,14 @@ int main()
     double dt = 0.05;
     double sim_time = 500;
 
-    // double control_signal = eigenaxis::operator*(eigenaxis::operator*(skew, J), omega)
-    //                         + eigenaxis::operator*(eigenaxis::operator*(D_matrix, omega))
-    //                         - eigenaxis::operator*(J_matrix, q_error);
-
+    // main simulation loop
     for (double time = 0.0; time < sim_time; t++)
     {
         control_signal = test1d.update_eigenaxis(omega)
         vec ang_accel = skew * J * omega + control_signal;
-
+        curr_quat_attitude += ang_accel * dt; 
 
         test1d.quaternion_calculator(curr_q, comm_q)
-
 
         if (curr_quat_attitude - des_quat_attitude)
         {
@@ -123,12 +123,10 @@ int main()
             std::cout << "The desired quaternion attitude has been reached" << std::endl;
             break;
         }
-
     }
-    
-    eigenaxis_test::operator*(t1, t2);
 
     std::cout << "Desired quaternion reference attitude " << des_quat_attitude << std::endl;
     std::cout << "Final quaternion representation is " << curr_quat_attitude << std::endl;
 
+    return 0;
 }
