@@ -22,6 +22,7 @@ Related open questions: none.
 from __future__ import annotations
 
 from cloversat.datatypes.vector_types import Quat, Vec3
+import numpy as np
 
 
 def align(
@@ -36,14 +37,35 @@ def align(
     Refs are in the inertial frame. Uses the degenerate fallback when the
     secondary pair is parallel to the primary pair.
     """
+    primary_body = normalize(primary_body)
+    primary_ref = normalize(primary_ref)
+    secondary_body = normalize(secondary_body)
+    secondary_ref = normalize(secondary_ref)
+
     raise NotImplementedError
 
 
 def is_degenerate(primary: Vec3, secondary: Vec3, tol_rad: float = 1e-3) -> bool:
-    """True if ``primary`` and ``secondary`` are within ``tol_rad`` of parallel."""
-    raise NotImplementedError
+    """
+    Checks if 2 vectors are parallel
+    True if ``primary`` and ``secondary`` are within ``tol_rad`` of parallel
+    """
+    cross = np.cross(primary, secondary)
+    return np.linalg.norm(cross) < np.sin(tol_rad)
 
 
 def fallback_secondary(primary: Vec3) -> Vec3:
     """Any unit vector perpendicular to ``primary`` (deterministic choice)."""
     raise NotImplementedError
+
+"""
+Helper function: normalize a vector so it's magnitude is 1
+"""
+def normalize(v: Vec3) -> Vec3:
+    v = np.asarray(v, dtype=float)
+    magnitude = np.linalg.norm(v)
+
+    if magnitude == 0:
+        raise ValueError("Cannot normalize a zero vector")
+
+    return v / magnitude
