@@ -93,12 +93,10 @@ int main()
     matrix D = {{0, 1, 1},
                 {1,3,4},
                 {4,1,2}};
-
                  
     matrix K = {{5, 2, 1},
                 {4,3,3},
                 {4,6,1}};
-
 
     test1d = eigenaxis(D, K);
     vec curr_quat_attitude = {0,0,0,0};
