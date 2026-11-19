@@ -32,42 +32,105 @@ from cloversat.datatypes.vector_types import Quat, Vec3
 
 def multiply(q1: Quat, q2: Quat) -> Quat:
     """Hamilton product ``q1 * q2``."""
-    raise NotImplementedError
+    w1, x1, y1, z1 = q1
+    w2, x2, y2, z2 = q2
+
+    return np.array([
+        w1*w2 - x1*x2 - y1*y2 - z1*z2,
+        w1*x2 + x1*w2 + y1*z2 - z1*y2,
+        w1*y2 - x1*z2 + y1*w2 + z1*x2,
+        w1*z2 + x1*y2 - y1*x2 + z1*w2
+    ])
 
 
 def conjugate(q: Quat) -> Quat:
     """Conjugate ``[w, -x, -y, -z]`` (inverse for unit quaternions)."""
-    raise NotImplementedError
+    w, x, y, z = q
+
+    return np.array([w, -x, -y, -z])
 
 
 def unit(q: Quat) -> Quat:
     """Normalize: return ``q / |q|``. Raises ``ValueError`` on a zero-norm input."""
-    raise NotImplementedError
+    norm = np.linalg.norm(q)
 
+    if norm == 0:
+        raise ValueError("Cannot normalize a zero quaternion")
+
+    return q / norm
 
 def rotate_vector(q: Quat, v: Vec3) -> Vec3:
     """Rotate ``v`` by ``q``: inertial-frame vector in, body-frame vector out."""
-    raise NotImplementedError
+    q = unit(q)
+    p = np.array([0.0, v[0], v[1], v[2]])
 
+    rotated = multiply(multiply(q, p), conjugate(q))
+    return rotated[1:]
 
 def error_quaternion(q: Quat, q_target: Quat) -> Quat:
     """Rotation from ``q_target`` to ``q``, sign-flipped to the shortest path."""
-    raise NotImplementedError
+    q = unit(q)
+    q_target = unit(q_target)
 
+    q_error = multiply(q, conjugate(q_target))
+
+    if q_error[0] < 0:
+        q_error = -q_error
+
+    return q_error
 
 def shortest_path(q: Quat) -> Quat:
     """Return ``q`` or ``-q`` so that ``w >= 0``."""
-    raise NotImplementedError
+    if q[0] < 0:
+        return -q
 
+    return q
 
 def to_rotation_matrix(q: Quat) -> npt.NDArray[np.float64]:
     """3x3 direction cosine matrix equivalent to ``q`` (body <- inertial)."""
-    raise NotImplementedError
+    w, x, y, z = unit(q)
+
+    return np.array([
+        [1 - 2*(y*y + z*z), 2*(x*y - w*z), 2*(x*z + w*y)],
+        [2*(x*y + w*z), 1 - 2*(x*x + z*z), 2*(y*z - w*x)],
+        [2*(x*z - w*y), 2*(y*z + w*x), 1 - 2*(x*x + y*y)]
+    ], dtype=np.float64)
 
 
 def from_rotation_matrix(dcm: npt.NDArray[np.float64]) -> Quat:
     """Unit quaternion from a 3x3 rotation matrix (body <- inertial)."""
-    raise NotImplementedError
+    r = dcm
+    trace = np.trace(r)
+
+    if trace > 0:
+        s = 2 * np.sqrt(1 + trace)
+        w = s / 4
+        x = (r[2, 1] - r[1, 2]) / s
+        y = (r[0, 2] - r[2, 0]) / s
+        z = (r[1, 0] - r[0, 1]) / s
+
+    elif r[0, 0] > r[1, 1] and r[0, 0] > r[2, 2]:
+        s = 2 * np.sqrt(1 + r[0, 0] - r[1, 1] - r[2, 2])
+        w = (r[2, 1] - r[1, 2]) / s
+        x = s / 4
+        y = (r[0, 1] + r[1, 0]) / s
+        z = (r[0, 2] + r[2, 0]) / s
+
+    elif r[1, 1] > r[2, 2]:
+        s = 2 * np.sqrt(1 + r[1, 1] - r[0, 0] - r[2, 2])
+        w = (r[0, 2] - r[2, 0]) / s
+        x = (r[0, 1] + r[1, 0]) / s
+        y = s / 4
+        z = (r[1, 2] + r[2, 1]) / s
+
+    else:
+        s = 2 * np.sqrt(1 + r[2, 2] - r[0, 0] - r[1, 1])
+        w = (r[1, 0] - r[0, 1]) / s
+        x = (r[0, 2] + r[2, 0]) / s
+        y = (r[1, 2] + r[2, 1]) / s
+        z = s / 4
+
+    return unit(np.array([w, x, y, z]))
 
 
 # ---- LEGACY START: legacy/Utils/transformations.py (reference only, not wired up) ----
