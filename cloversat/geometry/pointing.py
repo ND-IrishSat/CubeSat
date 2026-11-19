@@ -1,5 +1,7 @@
 """Two-vector alignment.
 
+@authors: Amir Samadian, ____
+
 Purpose:  Build the attitude that aligns a primary body axis with a primary
           reference direction, and gets a secondary body axis as close as
           possible to a secondary reference direction.
@@ -20,6 +22,7 @@ perpendicular secondary and report it via the ``degenerate`` flag.
 Related open questions: none.
 """
 from __future__ import annotations
+from cloversat.geometry.quaternion import from_rotation_matrix
 
 from cloversat.datatypes.vector_types import Quat, Vec3
 import numpy as np
@@ -48,7 +51,28 @@ def align(
     if is_degenerate(primary_ref, secondary_ref):
         secondary_ref = fallback_secondary(primary_ref)
 
-    raise NotImplementedError
+    # Need to work toward a rotation matrix: 3x3 matrix with 3 column vectors (each a independent vector in x, y, and z). Must describe a rigid rotation
+    # Construct a third, orthonormal vector 
+
+    # Why? Because a 3D rotation matrix needs three perpendicular axes to describe a complete orientation.
+    # Two nonparallel vectors are already enough to determine the orientation uniquely. 
+    # But to calculate that orientation using our chosen rotation-matrix approach, we construct a complete set of three axes.
+    # We then tell the computer: Here's the satellite's three axes, and here's where those three axes should point. Find the rotation connecting them.
+    body_normal = normalize(np.cross(primary_body, secondary_body)) 
+    ref_normal = normalize(np.cross(primary_ref, secondary_ref))
+
+    # The original secondary vector might not be perpendicular to the primary vector. 
+    # We need to fix that before building our rotation matrix. Because w need X, Y, Z independent columns
+    body_secondary_orth = normalize(np.cross(body_normal, primary_body)) #body_normal is guaranteed to be orthogonal to primary_body
+    ref_secondary_orth = normalize(np.cross(ref_normal, primary_ref)) 
+
+    B = np.column_stack((primary_body, body_secondary_orth, body_normal))   # B - constructed axes in body frame
+    R = np.column_stack((primary_ref, ref_secondary_orth, ref_normal))      # R - constructed axes in inertial frame
+
+    # Form the rotation marix
+    rotation_matrix = B @ R.T
+    # quaternion.py uses from_rotation_matric() to return a quaternion
+    return from_rotation_matrix(rotation_matrix)
 
 
 def is_degenerate(primary: Vec3, secondary: Vec3, tol_rad: float = 1e-3) -> bool:
