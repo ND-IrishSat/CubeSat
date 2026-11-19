@@ -19,7 +19,7 @@ from abc import ABC, abstractmethod
 from cloversat.datatypes.sample_types import Sample, SelfTestResult
 from cloversat.datatypes.vector_types import Vec3
 
-
+#plan on vectornav
 class GyroInterface(ABC):
     """Rate gyro."""
 

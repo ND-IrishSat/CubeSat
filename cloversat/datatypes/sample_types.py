@@ -31,7 +31,7 @@ class Sample(Generic[T]):
 
     value: T
     t: float
-    valid: bool
+    valid: bool = True
 
 
 class DeviceStatus(Enum):

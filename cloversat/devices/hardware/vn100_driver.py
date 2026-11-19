@@ -35,10 +35,15 @@ class Vn100Driver(GyroInterface, MagInterface, AccelInterface):
     """VN-100 over serial."""
 
     def __init__(self, params: Vn100Params) -> None:
-        raise NotImplementedError
+        self.params = params
+        self.sensor: VnSensor | None = None
+        self._initialized = False
 
     def init(self) -> None:
         """Connect and verify sensor connectivity."""
+		driver = VN100Driver(params)
+		driver.init()
+		sample = driver.read_gyro()
         raise NotImplementedError
 
     def self_test(self) -> SelfTestResult:
