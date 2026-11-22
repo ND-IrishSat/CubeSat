@@ -24,29 +24,34 @@ Scalar = TypeVar("Scalar", float, npt.NDArray[np.float64])
 
 def ut_to_t(x: Scalar) -> Scalar:
     """Microtesla -> tesla."""
-    raise NotImplementedError
+    return x*1e-6
 
 
 def t_to_ut(x: Scalar) -> Scalar:
     """Tesla -> microtesla."""
-    raise NotImplementedError
+    return x * 1e6
 
 
 def deg_to_rad(x: Scalar) -> Scalar:
     """Degrees -> radians."""
-    raise NotImplementedError
+    return x * (np.pi / 180.0)
 
 
 def rad_to_deg(x: Scalar) -> Scalar:
     """Radians -> degrees."""
-    raise NotImplementedError
+    return x * (180.0 / np.pi)
 
 
 def rpm_to_rad_s(x: Scalar) -> Scalar:
     """Revolutions per minute -> rad/s."""
-    raise NotImplementedError
+    return x * (2.0 * np.pi / 60.0)
 
 
 def rad_s_to_rpm(x: Scalar) -> Scalar:
     """rad/s -> revolutions per minute."""
-    raise NotImplementedError
+    return x * (60.0 / (2.0 * np.pi))
+
+def gauss_to_t(x: Scalar) -> Scalar:
+    """Gauss -> tesla (1 G = 1e-4 T). VN-100 reports magnetic field in gauss."""
+    return x * 1e-4
+

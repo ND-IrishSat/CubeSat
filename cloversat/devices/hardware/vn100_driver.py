@@ -14,52 +14,225 @@ Changes from legacy:
       (use ``geometry/units.py``).
     - No ``print``; no file logging (``print_data_to_file`` belongs in tools/).
     - Raw values only; mag calibration moves to ``estimation/mag_conditioning.py``.
+	- NEW: for now, Talks the VN-100 ASCII protocol directly over pyserial; no ``vnpy``
+      (vendored ``vn100_library/`` is no longer needed).
+
+Protocol summary (VN-100 user manual):
+    Command:  ``$<body>*<CS>\\r\\n`` where CS = XOR of the bytes of <body>, 2 hex digits.
+    Read register:  ``VNRRG,<id>``    -> reply ``VNRRG,<id>,<v1>,<v2>,...``
+    Write register: ``VNWRG,<id>,<v>`` -> reply echoes the write.
+    Error:          ``VNERR,<code>``
 
 Not the flight IMU; flight IMU driver added once the part is chosen (HW).
 """
 from __future__ import annotations
 
+import time
 from typing import TYPE_CHECKING
+
+import numpy as np
+import serial
 
 from cloversat.datatypes.sample_types import Sample, SelfTestResult
 from cloversat.datatypes.vector_types import Vec3
 from cloversat.devices.interfaces.accel_interface import AccelInterface
 from cloversat.devices.interfaces.gyro_interface import GyroInterface
 from cloversat.devices.interfaces.mag_interface import MagInterface
+from cloversat.geometry.units import gauss_to_t
 
 if TYPE_CHECKING:
     from cloversat.config.device_params import Vn100Params
+
+'''from the vn100 mannual: if the firmware rejects 54, use register 27 and offset 3 for the imu'''
+_REG_MODEL = 1
+_REG_ASYNC_TYPE = 6
+
+_IMU_REG = 54
+_IMU_OFFSET = 0
+
+_REPLY_TIMEOUT_S = 0.5
+
+'''indoor tesetbed elf-test plausibility bounds'''
+_ACCEL_NORM_RANGE = (7.0, 12.5)    
+_MAG_NORM_RANGE = (5e-6, 2e-4)     
+_GYRO_NORM_MAX = 1.0 
+
+
+'''organizing the real time output from the imu - the data is usually messy'''
+def _checksum(body: str) -> str:
+    """8-bit XOR of every byte between '$' and '*', as 2 uppercase hex digits."""
+    cs = 0
+    for b in body.encode("ascii"):
+        cs ^= b
+    return f"{cs:02X}"
+
+def _frame(body: str) -> bytes:
+    """'VNRRG,8' -> b'$VNRRG,8*4B\\r\\n'"""
+    return f"${body}*{_checksum(body)}\r\n".encode("ascii")
+
+
+def _unframe(line: bytes) -> Optional[str]:
+    """Return the body of a received line if its checksum is valid, else None."""
+    text = line.decode("ascii", errors="ignore").strip()
+    if not text.startswith("$") or "*" not in text:
+        return None
+    body, _, cs = text[1:].partition("*")
+    if cs[:2].upper() != _checksum(body):
+        return None
+    return body
+
+
+def _invalid(t: float) -> Sample[Vec3]:
+    return Sample(value=np.full(3, np.nan), t=t, valid=False)
 
 
 class Vn100Driver(GyroInterface, MagInterface, AccelInterface):
     """VN-100 over serial."""
 
     def __init__(self, params: Vn100Params) -> None:
-        raise NotImplementedError
+        self._params = params
+        self._ser: Optional[serial.Serial] = None
+        self.model: Optional[str] = None
 
     def init(self) -> None:
         """Connect and verify sensor connectivity."""
-        raise NotImplementedError
-
-    def self_test(self) -> SelfTestResult:
-        """Verify connectivity and plausible readings."""
-        raise NotImplementedError
+        if self._ser is not None and self._ser.is_open:
+              return
+        if self._params.port is None or self._params.baud is None:
+              raise ValueError("set Vn100Params.port and Vn100Params.baud")
+        self._ser = serial.Serial(self._params.port, self._params.baud, timeout=0.05)
+        try:
+            # Stop async streaming so polled replies are not buried in data lines.
+            self._write_register(_REG_ASYNC_TYPE, 0)
+            model = self._read_register(_REG_MODEL)[0]
+            if not model.startswith("VN-100"):
+                raise Vn100CommError(f"Unexpected model {model!r} on {self._params.port}")
+            self.model = model
+        except Exception:
+            self.close()
+            raise
+    
+    def close(self) -> None:
+          '''call it when nothing is connected - disconnecting from sensor'''
+          if self._ser is not None:
+                try:
+                      self._ser.close()
+                finally:
+                      self._ser = None
+                
+                  
+		
+   # def self_test(self) -> SelfTestResult:
+    #    """Verify connectivity and plausible readings."""
+#        raise NotImplementedError
 
     def read_gyro(self) -> Sample[Vec3]:
         """Return ``omega_body`` [rad/s]."""
-        raise NotImplementedError
+        return self.read_all()[0]
 
     def read_mag(self) -> Sample[Vec3]:
         """Return ``B_body`` [T]."""
-        raise NotImplementedError
+        return self.read_all()[1]
 
     def read_accel(self) -> Sample[Vec3]:
         """Return ``a_body`` [m/s^2]."""
-        raise NotImplementedError
+        return self.read_all()[2]
+    
+    def read_all(self) -> tuple[Sample[Vec3], Sample[Vec3], Sample[Vec3]]:
+              '''one poll of the sensor instead of three seperate reads when we are reading all of them at the same time'''
+              self._require_open()
+              try:
+                    raw = self._read_register(_IMU_REG)
+                    t = time.monotonic()
+                    v = np.array([float(x) for x in raw[_IMU_OFFSET:_IMU_OFFSET + 9]], dtype=np.float64)
+                    if v.size != 9 or not np.all(np.isfinite(v)):
+                           raise Vn100CommError(f"Bad IMU reply: {raw}")
+              except (Vn100CommError, TimeoutError, ValueError, serial.SerialException):
+                    t = time.monotonic()
+                    return _invalid(t), _invalid(t), _invalid(t)
+                    
+              mag = gauss_to_t(v[0:3])
+              accel = v[3:6]
+              gyro = v[6:9]
+              return (Sample(gyro, t, True), Sample(mag, t, True), Sample(accel, t, True))
 
-    def close(self) -> None:
-        """Disconnect from the sensor."""
-        raise NotImplementedError
+    def self_test(self) -> SelfTestResult:
+        """Verify connectivity and plausible readings. Assumes the sensor is still."""
+        if self._ser is None or not self._ser.is_open:
+            return SelfTestResult(False, 1, "not initialized")
+        try:
+            model = self._read_register(_REG_MODEL)[0]
+        except (Vn100CommError, TimeoutError, serial.SerialException) as e:
+            return SelfTestResult(False, 2, f"no response: {e}")
+
+        gyro, mag, accel = self.read_all()
+        if not (gyro.valid and mag.valid and accel.valid):
+            return SelfTestResult(False, 3, "IMU measurement read failed")
+
+        a = float(np.linalg.norm(accel.value))
+        b = float(np.linalg.norm(mag.value))
+        w = float(np.linalg.norm(gyro.value))
+        if not _ACCEL_NORM_RANGE[0] <= a <= _ACCEL_NORM_RANGE[1]:
+            return SelfTestResult(False, 4, f"|accel|={a:.2f} m/s^2 implausible")
+        if not _MAG_NORM_RANGE[0] <= b <= _MAG_NORM_RANGE[1]:
+            return SelfTestResult(False, 5, f"|B|={b * 1e6:.1f} uT implausible")
+        if w > _GYRO_NORM_MAX:
+            return SelfTestResult(False, 6, f"|omega|={w:.3f} rad/s, not stationary?")
+        return SelfTestResult(True, 0, f"{model} ok")
+	
+	
+	
+	# low level protocol
+    def _require_open(self) -> serial.Serial:
+        if self._ser is None or not self._ser.is_open:
+            raise RuntimeError("Vn100Driver not initialized; call init() first")
+        return self._ser
+
+	# read & write to the register 
+    def _read_register(self, reg: int) -> list[str]:
+        return self._transact(f"VNRRG,{reg}", "VNRRG", reg)
+
+    def _write_register(self, reg: int, *values: object) -> list[str]:
+        body = f"VNWRG,{reg}," + ",".join(str(v) for v in values)
+        return self._transact(body, "VNWRG", reg)
+
+    def _transact(self, body: str, cmd: str, reg: int) -> list[str]:
+        ser = self._require_open()
+        ser.reset_input_buffer()              # drop stale data from earlier
+        ser.write(_frame(body))
+
+		
+        buf = b""
+        deadline = time.monotonic() + _REPLY_TIMEOUT_S
+        while time.monotonic() < deadline:
+            buf += ser.read(ser.in_waiting or 1)   # blocks <= serial timeout
+            while b"\n" in buf:
+                line, buf = buf.split(b"\n", 1)
+                reply = _unframe(line)
+                if reply is None:
+                    continue                  # partial or corrupt line
+                fields = reply.split(",")
+                if fields[0] == "VNERR":
+                    raise Vn100CommError(f"{body!r} rejected: VNERR {fields[1:]}")
+                if (fields[0] == cmd and len(fields) > 1
+                        and fields[1].isdigit() and int(fields[1]) == reg):
+                    return fields[2:]
+        raise TimeoutError(f"No reply to {body!r} within {_REPLY_TIMEOUT_S}s")
+              
+
+
+	
+
+
+	
+
+
+
+
+
+
+
+
 
 
 # ---- LEGACY START: legacy/HardwareInterface/vn100/vn100_interface.py (reference only, not wired up) ----
