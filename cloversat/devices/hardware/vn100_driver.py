@@ -34,7 +34,7 @@ import numpy as np
 import serial
 
 from cloversat.datatypes.sample_types import Sample, SelfTestResult
-from cloversat.datatypes.vector_types import Vec3
+from cloversat.datatypes.vector_types import Quat, Vec3
 from cloversat.devices.interfaces.accel_interface import AccelInterface
 from cloversat.devices.interfaces.gyro_interface import GyroInterface
 from cloversat.devices.interfaces.mag_interface import MagInterface
@@ -46,6 +46,7 @@ if TYPE_CHECKING:
 '''from the vn100 mannual: if the firmware rejects 54, use register 27 and offset 3 for the imu'''
 _REG_MODEL = 1
 _REG_ASYNC_TYPE = 6
+_REG_QUAT = 9
 
 _IMU_REG = 54
 _IMU_OFFSET = 0
@@ -155,7 +156,19 @@ class Vn100Driver(GyroInterface, MagInterface, AccelInterface):
               accel = v[3:6]
               gyro = v[6:9]
               return (Sample(gyro, t, True), Sample(mag, t, True), Sample(accel, t, True))
+    
+    def read_attitude(self) -> Sample[Quat]:
+              self._require_open()
+              try:
+                    raw = self._read_register(_REG_QUAT)
+                    t = time.monotonic()
+                    x, y, z, w = (float(v) for v in raw[:4])
+              except (Vn100CommError, TimeoutError, ValueError, serial.SerialException):
+                    return Sample(np.full(4, np.nan), time.monotonic(), False)
+              q = np.array([w, x, y, z])
+              return Sample(q/np.linalg.norm(q), t, True)
 
+	
     def self_test(self) -> SelfTestResult:
         """Verify connectivity and plausible readings. Assumes the sensor is still."""
         if self._ser is None or not self._ser.is_open:

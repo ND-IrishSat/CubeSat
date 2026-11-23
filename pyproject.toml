@@ -11,6 +11,8 @@ dependencies = ["numpy", "scipy", "sgp4"]
 
 [project.optional-dependencies]
 dev = ["pytest"]
+hw = ["pyserial"]
+gui = ["pyqtgraph", "PyQt6", "PyOpenGL"]
 
 [tool.setuptools.packages.find]
 include = ["cloversat*"]
@@ -19,4 +21,3 @@ include = ["cloversat*"]
 testpaths = ["tests"]
 addopts = "--import-mode=importlib"
 
-hw = ["pyserial"]
