@@ -33,3 +33,4 @@ cloversat/devices/hardware/vn100_library/dist/
 cloversat/devices/hardware/vn100_library/vnpy.egg-info/
 *.egg-info/
 .pytest_cache/
+logs/
